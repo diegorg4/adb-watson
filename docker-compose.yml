@@ -1,0 +1,10 @@
+version: '1.0'
+services:
+  watson-api:
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./:/home/watson-api
