@@ -1,0 +1,29 @@
+FROM python:3.11
+
+RUN mkdir -p /home/logging
+
+WORKDIR /home/logging
+
+# Install requirements file so the python app can run as usual
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV PYTHONPATH=$PYTHONPATH:/home/logging
+WORKDIR /home/logging
+
+RUN touch /var/log/services.log
+
+RUN  echo "deb https://assets.logdna.com stable main" | tee /etc/apt/sources.list.d/logdna.list && \
+    wget -O- https://assets.logdna.com/logdna.gpg | apt-key add - && \
+    apt-get update && \
+    apt-get install logdna-agent < "/dev/null"
+
+RUN apt-get install -y supervisor
+
+# Copy the application code into the container
+COPY . .
+
+# Copy supervisord configuration file
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

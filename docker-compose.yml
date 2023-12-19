@@ -1,10 +1,30 @@
 version: '1.0'
 services:
-  watson-api:
+  wa_webhook:
     build:
-      context: .
-      dockerfile: ./dockerfile
+      context: ./wa_webhook
+      dockerfile: dockerfile
     ports:
       - '8000:8000'
     volumes:
-      - ./:/home/watson-api
+      - ./wa_webhook:/home/wa_webhook
+  redis:
+    image: redis:6.2.6
+  send_tickets:
+    build:
+      context: ./send_tickets
+      dockerfile: dockerfile
+  wa_history:
+    build:
+      context: ./wa_history
+      dockerfile: dockerfile
+    ports:
+      - '8001:8000'
+  logging:
+    build:
+      context: ./logging
+      dockerfile: dockerfile
+    ports:
+      - '8002:8000'
+  
+  

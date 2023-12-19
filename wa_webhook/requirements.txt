@@ -1,0 +1,7 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+twilio
+redis
+python-dotenv
+cloudant
+ibmcloudant>=0.7.1

@@ -1,10 +1,8 @@
 FROM python:3.11
 
-RUN mkdir -p /home/watson-api
+RUN mkdir -p /home/wa_webhook
 
-ENV PYTHONPATH=$PYTHONPATH:/home/watson-api
-
-WORKDIR /home/watson-api
+WORKDIR /home/wa_webhook
 
 # Set noninteractive mode and default locales
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -25,7 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the FastAPI application code into the container
 COPY . .
 
-WORKDIR /home/watson-api/app
+ENV PYTHONPATH=$PYTHONPATH:/home/wa_webhook
+WORKDIR /home/wa_webhook
 
 # Command to run the FastAPI application using Uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

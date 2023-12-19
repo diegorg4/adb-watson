@@ -1,0 +1,18 @@
+FROM python:3.11
+
+RUN mkdir -p /home/send_tickets
+
+WORKDIR /home/send_tickets
+
+# Install requirements file so the python app can run as usual
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code into the container
+COPY . .
+
+ENV PYTHONPATH=$PYTHONPATH:/home/send_tickets
+WORKDIR /home/send_tickets
+
+# Command to run the Python application using Uvicorn server
+CMD ["python", "main.py"]
