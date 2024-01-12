@@ -14,8 +14,8 @@ app = FastAPI()
 async def wa_history(request_data: RequestModel):
 
     # Log the entire request payload
-    log_event("Request Payload:" + request_data.model_dump_json(), settings.LABEL_INFO)
-    print("LOG EVENT LOGGED")
+    log_event("Request Payload:" + request_data.model_dump_json())
 
     return save_history(request_data)
+    
     

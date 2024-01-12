@@ -1,0 +1,20 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+LABEL_CRITICAL = 'CRITICAL'
+LABEL_ERROR = 'ERROR'
+LABEL_WARNING = 'WARNING'
+LABEL_INFO = 'INFO'
+LABEL_DEBUG = 'DEBUG'
+
+WA_WEBOOK_NAME = 'WA-MAIN-WEBHOOK'
+WA_WEBHOOK_LOG_PATH = '/var/log/wa_webhook.log'
+
+WA_HISTORY_NAME = 'WA-HISTORY'
+WA_HISTORY_LOG_PATH = '/var/log/wa_history.log'
+
+WA_DEFAULT_NAME = 'WA-DEFAULT'
+WA_DEFAULT_LOG_PATH = '/var/log/default.log'
+
+WA_LOGGERS = [WA_WEBOOK_NAME, WA_HISTORY_NAME, WA_DEFAULT_NAME]

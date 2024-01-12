@@ -1,7 +1,10 @@
 from pydantic_models.request_model import RequestModel
 
+import json
 import locale
 import random
+import settings
+from common.log_event import log_event
 from datetime import datetime
 
 # Neccesary to return date on spanish
@@ -35,7 +38,7 @@ def travels_service(request_data: RequestModel):
             returning_travel_prices = []
             returning_travel_dates = []
 
-        return {
+        response = {
                 "code":1,
                 "leaving_travel":{
                     "sales_text":leaving_travel_text,
@@ -46,9 +49,16 @@ def travels_service(request_data: RequestModel):
                     "sales_text": returning_travel_text,
                     "prices": returning_travel_prices,
                     "dates": returning_travel_dates
-                }        
-            }
+                }
+        }
+                
+        log_event(json.dumps(response))
+
+        return response
+            
     except Exception as e:
+        log_event(str(e), settings.LABEL_ERROR)
+        
         return {
                 "code":0,
                 "description": str(e)

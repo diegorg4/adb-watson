@@ -26,5 +26,9 @@ COPY . .
 ENV PYTHONPATH=$PYTHONPATH:/home/wa_webhook
 WORKDIR /home/wa_webhook
 
+# State the corresponding envonment - local, dev
+ARG ENVIRONMENT_ARG
+ENV ENVIRONMENT=${ENVIRONMENT_ARG}
+
 # Command to run the FastAPI application using Uvicorn server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

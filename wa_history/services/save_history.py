@@ -1,6 +1,5 @@
 import settings
 import uuid
-import logging
 
 from common.log_event import log_event
 from ibm_cloud_sdk_core import ApiException
@@ -24,7 +23,7 @@ def save_history(request_model: RequestModel):
             document=event_doc
         ).get_result()
         
-        log_event(str(response),settings.LABEL_INFO)
+        log_event(str(response))
 
         return {
             "code": 1,

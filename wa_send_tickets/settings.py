@@ -7,4 +7,4 @@ REDIS_PORT = 6379
 REDIS_DB_ID = 0
 REDIS_IP = os.getenv('REDIS_IP','redis')
 SERVER_SLEEP = 0.05
-QUADIENT_URL = 'https://adb-quadient-server/generate-pdf'
+QUADIENT_URL = os.getenv('QUADIENT_URL','')

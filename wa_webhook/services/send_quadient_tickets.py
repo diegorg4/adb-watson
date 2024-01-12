@@ -1,19 +1,32 @@
 from pydantic_models.request_model import RequestModel
-import redis
+from common.http_requests import post_request
 
-import uuid
-import settings
-import logging
+from settings import QUADIENT_URL, LABEL_ERROR, DN_PATTERN
 import json
+import re
 
-# Connect to Redis server
-redis_db = redis.Redis(host=settings.REDIS_IP, port=settings.REDIS_PORT)
+from common.log_event import log_event
+from settings import LABEL_ERROR
 
-def send_tickets_service(request_data: RequestModel):
+def send_quadient_tickets(request_data: RequestModel):
+
+    matches_positions = [(match.start(), match.end()) for match in re.finditer(DN_PATTERN, request_data.customer_dn)]
+
+    if matches_positions:
+        latest_match_start, latest_match_end = matches_positions[-1]
+        latest_match = request_data.customer_dn[latest_match_start:latest_match_end]
+        request_data.customer_dn = "+52" + latest_match
+    else:
+        log_event("customer DN pattern didn't match a result", LABEL_ERROR)
+
+        return {"code":"0", "description":"customer DN pattern didn't match a result"}
+        
     try:
         if request_data.trip_type == 'sencillo':
+            
             customer_playload = {"Clients":[{
-                            "ClientID":str(uuid.uuid4()),
+                            "ClientID":"0044",
+                            "MailFrom": "l.ramirez@quadient.com",
                             "name":request_data.customer_name,
                             "email":request_data.customer_email,
                             "phone":request_data.customer_dn,
@@ -35,8 +48,9 @@ def send_tickets_service(request_data: RequestModel):
         elif request_data.trip_type == 'redondo':
             
             customer_playload = {"Clients":[{
-                            "ClientID":str(uuid.uuid4()),
+                            "ClientID":"0044",
                             "name":request_data.customer_name,
+                            "MailFrom": "l.ramirez@quadient.com",
                             "email":request_data.customer_email,
                             "phone":request_data.customer_dn,
                             "trip_type":request_data.trip_type,
@@ -61,21 +75,17 @@ def send_tickets_service(request_data: RequestModel):
                                 }
                             ]
                         }]}
-            
-        job_data = {'id':str(uuid.uuid4()), 
-                    'data':customer_playload,
-                    'customer_dn':request_data.customer_dn,
-                    'wa_message':request_data.wa_message
-                    }
 
-        redis_db.lpush(settings.REDIS_QUEUE, json.dumps(job_data))
+        log_event(f"Body request to quadient service: {json.dumps(customer_playload)}")
 
-        logging.INFO(f"Job queued. Data: {json.dumps(job_data)}")
-        
-        return {"code":1, "description": f"Job pending. Id: {job_data['id']}"}
+        response = post_request(QUADIENT_URL, customer_playload, headers={"Authorization": "Bearer I+mPpGm/ykdzE5w2+YAggBCBsPunYs0hf1c5LGB7U7jl"}, verbose=False)
+
+        log_event(f"Response from quadient service: {response}", log_internal=False)
+
+        return {"code":1, "description": "Sent"}
     
     except Exception as e:
         
-        logging.ERROR(f"Exception ocurred: {str(e)}")
+        log_event(str(e), LABEL_ERROR)
 
-        return {"code":0, "description":str(e)}
+        return {"code":0, "description": str(e)}
