@@ -14,6 +14,9 @@ COPY . .
 ENV PYTHONPATH=$PYTHONPATH:/home/wa_history
 WORKDIR /home/wa_history
 
+ARG ENVIRONMENT_ARG
+ENV ENVIRONMENT=${ENVIRONMENT_ARG}
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 

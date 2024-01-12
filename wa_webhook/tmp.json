@@ -1,1 +1,0 @@
-{"type": "string_pattern_mismatch", "loc": ("body", "customer_email"), "msg": "String should match pattern "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"", "input": "diego.roman", "ctx": {"pattern": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"}, "url": "https://errors.pydantic.dev/2.5/v/string_pattern_mismatch"}] 

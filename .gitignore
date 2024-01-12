@@ -5,3 +5,4 @@ cloudant-credentials.json
 httpd
 tmp
 /python
+*.zip

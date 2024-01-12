@@ -3,7 +3,7 @@ from pydantic_models.request_model import RequestModel
 
 
 from fastapi import FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
