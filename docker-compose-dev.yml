@@ -1,7 +1,7 @@
-version: '1.0'
+version: '1.1'
 services:
   wa_webhook:
-    image: watsonassistant-wa_webhook-dev:1.0
+    image: watsonassistant-wa_webhook-dev:1.1
     build:
       context: ./wa_webhook
       dockerfile: dockerfile
@@ -14,14 +14,14 @@ services:
   redis:
     image: redis:6.2.6
   wa_send_tickets:
-    image: watsonassistant-wa_send_tickets-dev:1.0
+    image: watsonassistant-wa_send_tickets-dev:1.1
     build:
       context: ./wa_send_tickets
       dockerfile: dockerfile
       args:
         - ENVIRONMENT_ARG=dev
   wa_history:
-    image: watsonassistant-wa_history-dev:1.0
+    image: watsonassistant-wa_history-dev:1.1
     build:
       context: ./wa_history
       dockerfile: dockerfile
@@ -30,7 +30,7 @@ services:
     ports:
       - '8001:8000'
   wa_logging:
-    image: watsonassistant-wa_logging-dev:1.0
+    image: watsonassistant-wa_logging-dev:1.1
     build:
       context: ./wa_logging
       dockerfile: dockerfile

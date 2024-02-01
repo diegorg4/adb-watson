@@ -1,21 +1,38 @@
 from pydantic_models.request_model import RequestModel
 from common.http_requests import post_request
+from typing import Dict
+from model.cloudant_manager import CloudantManager
+from services.twilio_manager import TwilioManager
 
-from settings import QUADIENT_URL, LABEL_ERROR, DN_PATTERN
+from settings import environment, QUADIENT_URL, LABEL_ERROR, DN_PATTERN, TWILIO_CONTENT_START_MSID, CLOUDANT_TICKET_DOCUMENTS_DB       
 import json
 import re
+import base64
+import os
+import locale
 
 from common.log_event import log_event
-from settings import LABEL_ERROR
+from twilio.rest import Client
+
 
 def send_quadient_tickets(request_data: RequestModel):
 
     matches_positions = [(match.start(), match.end()) for match in re.finditer(DN_PATTERN, request_data.customer_dn)]
 
+    # DN can come as (+52)(\d{10}) or \d{10}. The regex pattern groups (+52) so the last pattern found needs to be taken as the DN
+    # (+52)(\d{10}) matches two subgroups and we need the second (latest) and (\d{10}) matches the first, also the latest [-1]
+    
     if matches_positions:
+        
         latest_match_start, latest_match_end = matches_positions[-1]
+        
         latest_match = request_data.customer_dn[latest_match_start:latest_match_end]
-        request_data.customer_dn = "+52" + latest_match
+        
+        # Quadient service requieres this format
+        if "+52" not in request_data.customer_dn:
+
+            request_data.customer_dn = "+52" + latest_match
+
     else:
         log_event("customer DN pattern didn't match a result", LABEL_ERROR)
 
@@ -82,10 +99,71 @@ def send_quadient_tickets(request_data: RequestModel):
 
         log_event(f"Response from quadient service: {response}", log_internal=False)
 
-        return {"code":1, "description": "Sent"}
+        response_data = json.loads(response)
+
+        save_pdf(response_data)
+
+        save_transaction_metadata(response_data['job-id'], request_data.customer_dn)
+        
+        start_whatsapp_conversation(request_data.customer_dn)
+
+        return {"code":1, "description": "Sent", "file-uuid": response_data['job-id']}
     
     except Exception as e:
         
         log_event(str(e), LABEL_ERROR)
 
         return {"code":0, "description": str(e)}
+
+def save_pdf(response_data: Dict):
+
+    try:
+
+        binary_file = base64.b64decode(response_data['data'][0]['file'])
+
+        file_path = os.path.join(   os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                    "files",
+                                    f"{response_data['job-id']}."
+                                    f"{response_data['data'][0]['contentType'].split('/')[1]}"
+                                )
+
+        with open(file_path, 'wb') as output_file:
+
+            output_file.write(binary_file)
+
+    except Exception as e:
+
+        log_event(str(e), LABEL_ERROR)
+    
+
+def start_whatsapp_conversation(customer_dn:str):
+
+    twilio_client = TwilioManager()
+    
+    twilio_client.create_message_no_content(
+                    to=customer_dn,
+                    content_sid=TWILIO_CONTENT_START_MSID
+                  )
+
+def save_transaction_metadata(file_uuid:str, customer_dn:str):
+
+    from datetime import datetime
+    import pytz
+
+    now_utc = datetime.now(pytz.utc)
+
+    timezone = pytz.timezone("America/Mexico_City")
+
+    current_datetime = now_utc.astimezone(timezone)
+
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
+    custom_cloudant = CloudantManager(CLOUDANT_TICKET_DOCUMENTS_DB)
+
+    custom_cloudant.put_document({  
+                                    "env": environment,
+                                    "file_uuid":file_uuid,
+                                    "customer_dn":customer_dn,
+                                    "status":"PENDING",
+                                    "date": formatted_datetime
+                                  })

@@ -1,47 +1,105 @@
-from typing import Dict
-from cloudant.client import Cloudant
-import settings
-import logging
+from typing import Dict, List
+import uuid
+from common.log_event import log_event
+
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from ibmcloudant.cloudant_v1 import CloudantV1, Document
+
+from settings import CLOUDANT_APIKEY, CLOUDANT_URL, LABEL_ERROR
 
 class CloudantManager():
-    def __init__(self) -> None:
-        self.client = None
-        self.database = None
+    def __init__(self, db_name: str) -> None:
 
-    def connect(self, url: str = settings.CLOUDANT_URL, 
-                cloudant_user : str = settings.CLOUDANT_USER, 
-                 auth_token : str = settings.CLOUDANT_APIKEY):
+        self._authenticator = IAMAuthenticator(CLOUDANT_APIKEY)
+
+        self._cloudant_client = CloudantV1(authenticator=self._authenticator)
+
+        self._cloudant_client.set_service_url(CLOUDANT_URL)
+
+        self.db_name = db_name
+
+    def put_document(self, document:Dict) -> Dict:
+
+        try:
+            event_doc = Document(data=document)
+
+            response = self._cloudant_client.put_document(
+                db          =   self.db_name,
+                doc_id      =   str(uuid.uuid4()),
+                document    =   event_doc
+            ).get_result()
+            
+            log_event("Post document response: " + str(response))
+
+            return {
+                "code": 1,
+                "description": response
+            }
+
+        except Exception as e:
+
+            log_event(str(e), LABEL_ERROR)
+
+            return {
+                "code": 0,
+                "description": str(e)
+            }
         
-        self.client = Cloudant(cloudant_user=cloudant_user, auth_token=auth_token, url=url)
-        self.client.connect()
+    def query_documents(self, selector: Dict, fields: List, sort: List = []) -> Dict:
 
-    def set_database(self, database_name):
         try:
-            self.database = self.client.create_database(database_name, throw_on_exists=False)
+
+            response = self._cloudant_client.post_find(
+                db=self.db_name,
+                selector=selector,
+                fields=fields,
+                sort=sort
+
+            ).get_result()
+
+            log_event("Query documents response: " + str(response))
+
+            return response
+
 
         except Exception as e:
-            logging.error(f"Error while creating database: {str(e)}")
-            raise
+            
+            log_event(str(e), LABEL_ERROR)
 
-    def create_document(self, document:Dict):
-        if self.database is not None:
-            try:
-                document_result = self.database.create_document(document)
-                if document_result.exists():
-                    return True
-                else:
-                    return False
-            except Exception as e:
-                logging.error(f"Error while creating document: {str(e)}")
-                raise
-        else:
-            raise ValueError("Database connection was unsuccessful. Please select or create a new database.")
-
-    def disconnect(self):
+            return {
+                "code": 0,
+                "description": str(e)
+            }
+    
+    def update_document_fields(self, doc_id: str, updated_fields: Dict) -> Dict:
         try:
-            if self.client is not None:
-                self.client.disconnect()
-                logging.info("Disconnected from Cloudant")
+            # Retrieve the existing document
+            existing_doc = self._cloudant_client.get_document(
+                db=self.db_name,
+                doc_id=doc_id
+            ).get_result()
+
+            # Update the specified fields
+            for field, value in updated_fields.items():
+                existing_doc['data'][field] = value
+
+            # Save the updated document
+            response = self._cloudant_client.put_document(
+                db=self.db_name,
+                doc_id=doc_id,
+                document=existing_doc
+            ).get_result()
+
+            log_event("Update document fields response: " + str(response))
+
+            return response
+
         except Exception as e:
-            logging.error(f"Error while disconnecting from Cloudant: {str(e)}")
-            raise 
+
+            log_event("Exception on cloud_manager updating document: " + str(e), LABEL_ERROR)
+
+            return {
+                "code": 0,
+                "description": str(e)
+            }
+
